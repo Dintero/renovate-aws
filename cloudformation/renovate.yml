@@ -29,15 +29,11 @@ Parameters:
     AllowedValues:
       - github
       - gitlab
-
-  RenovatePlatformToken:
-    Type: String
-    MinLength: 1
-    NoEcho: true
+      - bitbucket
 
   Image:
     Type: String
-    Default: aws/codebuild/nodejs:10.1.0
+    Default: aws/codebuild/standard:2.0
 
   ComputerType:
     Type: String
@@ -45,25 +41,12 @@ Parameters:
 
   TimeoutInMinutes:
     Type: Number
-    Default: 10
+    Default: 20
 
 Conditions:
   HasRenovateSchedule: {"Fn::Not": [{"Fn::Equals": ["", {"Ref": "RenovateSchedule"}]}]}
 
-Mappings:
-  PlatformToEnv:
-    gitlab:
-      Value: "    GITLAB_TOKEN"
-    github:
-      Value: "    GITHUB_TOKEN"
-
 Resources:
-  RenovatePlatformTokenParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: /renovate-aws/platform_token
-      Value: !Ref RenovatePlatformToken
 
   RenovateRole:
     Type: AWS::IAM::Role
@@ -136,6 +119,7 @@ Resources:
         ComputeType: !Ref ComputerType
         Image: !Ref Image
         Type: LINUX_CONTAINER
+        PrivilegedMode: true
         EnvironmentVariables:
           - Name: RENOVATE_VERSION
             Value: !Ref RenovateVersion
@@ -162,18 +146,25 @@ Resources:
                 - !Join
                   - ": "
                   -
-                    - !FindInMap [ PlatformToEnv, !Ref "RenovatePlatform", Value ]
+                    - "    RENOVATE_TOKEN"
                     - /renovate-aws/platform_token
                 - "\n"
             - |
+                Cache:
+                  Type: LOCAL
+                  Modes: 
+                    - LOCAL_DOCKER_LAYER_CACHE
                 phases:
                   install:
+                    runtime-versions:
+                      docker: 18
                     commands:
-                      - npm install renovate@${RENOVATE_VERSION}
-                      - "$(npm bin)/renovate --version"
+                      - docker pull renovate/renovate:${RENOVATE_VERSION}
+                      - env > host.env
                   build:
                     commands:
-                      - $(npm bin)/renovate ${RENOVATE_FLAGS}
+                      - docker run --env-file ./host.env renovate/renovate:${RENOVATE_VERSION}
+
       TimeoutInMinutes: !Ref TimeoutInMinutes
 
 Outputs:
