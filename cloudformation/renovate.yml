@@ -29,11 +29,7 @@ Parameters:
     AllowedValues:
       - github
       - gitlab
-
-  RenovatePlatformToken:
-    Type: String
-    MinLength: 1
-    NoEcho: true
+      - bitbucket
 
   Image:
     Type: String
@@ -50,20 +46,7 @@ Parameters:
 Conditions:
   HasRenovateSchedule: {"Fn::Not": [{"Fn::Equals": ["", {"Ref": "RenovateSchedule"}]}]}
 
-Mappings:
-  PlatformToEnv:
-    gitlab:
-      Value: "    GITLAB_TOKEN"
-    github:
-      Value: "    GITHUB_TOKEN"
-
 Resources:
-  RenovatePlatformTokenParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: /renovate-aws/platform_token
-      Value: !Ref RenovatePlatformToken
 
   RenovateRole:
     Type: AWS::IAM::Role
@@ -162,7 +145,7 @@ Resources:
                 - !Join
                   - ": "
                   -
-                    - !FindInMap [ PlatformToEnv, !Ref "RenovatePlatform", Value ]
+                    - "    RENOVATE_TOKEN"
                     - /renovate-aws/platform_token
                 - "\n"
             - |
