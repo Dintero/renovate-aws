@@ -150,6 +150,10 @@ Resources:
                     - /renovate-aws/platform_token
                 - "\n"
             - |
+                Cache:
+                  Type: LOCAL
+                  Modes: 
+                    - LOCAL_DOCKER_LAYER_CACHE
                 phases:
                   install:
                     runtime-versions:
